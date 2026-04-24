@@ -32,15 +32,7 @@ const server = http.createServer((req, res) => {
 
       if (error) {
         console.log("ERROR:", error);
-        res.end(`
-          <html>
-            <head><meta charset="UTF-8"><title>Error</title></head>
-            <body style="background:black;color:white;text-align:center;padding:50px;font-family:Arial;">
-              <h1 style="color:red;">❌ Error saving data</h1>
-              <a href="/" style="color:#00ff88;">Back</a>
-            </body>
-          </html>
-        `);
+        res.end("<h1>Error saving data</h1><a href='/'>Back</a>");
         return;
       }
 
@@ -104,18 +96,29 @@ Message: ${data.message}`
         </section>
 
         <section style="display:flex;flex-wrap:wrap;justify-content:center;gap:20px;padding:20px;">
-          <div style="background:#111;padding:25px;border-radius:12px;width:220px;">❄️ AC Maintenance</div>
-          <div style="background:#111;padding:25px;border-radius:12px;width:220px;">💧 Water Tank Cleaning</div>
-          <div style="background:#111;padding:25px;border-radius:12px;width:220px;">🐜 Pest Control</div>
+          <a href="#booking" onclick="document.getElementById('service').value='AC Maintenance';"
+            style="background:#111;color:white;padding:25px;border-radius:12px;width:220px;text-decoration:none;display:block;">
+            ❄️ AC Maintenance
+          </a>
+
+          <a href="#booking" onclick="document.getElementById('service').value='Water Tank Cleaning';"
+            style="background:#111;color:white;padding:25px;border-radius:12px;width:220px;text-decoration:none;display:block;">
+            💧 Water Tank Cleaning
+          </a>
+
+          <a href="#booking" onclick="document.getElementById('service').value='Pest Control';"
+            style="background:#111;color:white;padding:25px;border-radius:12px;width:220px;text-decoration:none;display:block;">
+            🐜 Pest Control
+          </a>
         </section>
 
-        <section style="padding:40px 20px;">
+        <section id="booking" style="padding:40px 20px;">
           <h2>Book Service Now</h2>
 
           <form method="POST" action="/">
             <input name="name" placeholder="Name" required style="width:280px;padding:12px;margin:6px;border-radius:6px;border:none;"><br>
             <input name="phone" placeholder="Phone" required style="width:280px;padding:12px;margin:6px;border-radius:6px;border:none;"><br>
-            <input name="service" placeholder="Service" required style="width:280px;padding:12px;margin:6px;border-radius:6px;border:none;"><br>
+            <input id="service" name="service" placeholder="Service" required style="width:280px;padding:12px;margin:6px;border-radius:6px;border:none;"><br>
             <textarea name="message" placeholder="Message" style="width:280px;padding:12px;margin:6px;border-radius:6px;border:none;"></textarea><br>
 
             <button type="submit" style="background:#00ff88;color:black;border:none;padding:12px 25px;border-radius:6px;font-weight:bold;cursor:pointer;">
