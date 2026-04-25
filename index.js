@@ -16,7 +16,7 @@ function page(html) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Relax Fix UAE | AC Maintenance, Tank Cleaning, Pest Control</title>
-    <meta name="description" content="Relax Fix provides AC maintenance, water tank cleaning, pest control and home maintenance services in UAE. Fast booking by WhatsApp.">
+    <meta name="description" content="Relax Fix provides fast and trusted AC maintenance, water tank cleaning, pest control and home maintenance services in UAE. Same-day options and WhatsApp booking.">
     <style>
       * { box-sizing: border-box; }
       body { margin:0; font-family:Arial,sans-serif; background:#07111f; color:white; }
@@ -134,10 +134,12 @@ Message: ${data.message}`
       <section class="hero">
         <div class="container hero-grid">
           <div>
-            <h1>Reliable Home Maintenance Services in UAE</h1>
+            <h1>Fast & Trusted Home Maintenance in UAE ⚡</h1>
+            <p class="muted">Same Day Service • Trusted Technicians • Affordable Prices</p>
             <p class="muted">AC Maintenance • Water Tank Cleaning • Pest Control • Fast WhatsApp Booking</p>
+
             <a class="btn btn-main" href="#booking">Book Service</a>
-            <a class="btn btn-wa" href="https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Hello, I want service from Relax Fix")}" target="_blank">WhatsApp</a>
+            <a class="btn btn-wa" href="https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Hello, I need AC or maintenance service from Relax Fix")}" target="_blank">WhatsApp</a>
 
             <div class="trustbar">
               <div class="trustitem">⚡ Fast Response</div>
@@ -163,6 +165,7 @@ Message: ${data.message}`
               <textarea name="message" placeholder="Message"></textarea>
               <button type="submit">Send Request</button>
             </form>
+            <p style="margin-top:12px;color:#a8bdd4;">📞 Call: +971 58 825 9848</p>
           </div>
         </div>
       </section>
@@ -236,6 +239,7 @@ Message: ${data.message}`
               <textarea name="message" placeholder="Tell us more about your request"></textarea>
               <button type="submit">Send Request</button>
             </form>
+            <p style="margin-top:12px;color:#a8bdd4;">📞 Call: +971 58 825 9848</p>
           </div>
         </div>
       </section>
