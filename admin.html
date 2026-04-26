@@ -2,20 +2,21 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>Relax Fix Dashboard</title>
+<title>Dashboard</title>
 <style>
 body{background:#111;color:#fff;font-family:Arial;text-align:center;padding:20px}
 input{padding:10px;border-radius:8px}
 button{padding:10px;background:#27e0ff;border:none;border-radius:8px;cursor:pointer}
-.card{background:#222;padding:12px;margin:10px;border-radius:10px}
+.card{background:#222;padding:10px;margin:10px;border-radius:10px}
 </style>
 </head>
+
 <body>
 
 <h1>Dashboard</h1>
 
 <input id="pass" placeholder="كلمة المرور">
-<button id="openBtn">فتح</button>
+<button onclick="loadData()">فتح</button>
 
 <div id="data"></div>
 
@@ -27,43 +28,38 @@ const supabase = createClient(
   "sb_publishable_qXOPVaD5_f60qf1UbYrm2A_sH9c0lW5"
 );
 
-document.getElementById("openBtn").addEventListener("click", async () => {
+window.loadData = async function(){
   const pass = document.getElementById("pass").value;
 
-  if (pass !== "123456") {
+  if(pass !== "123456"){
     alert("كلمة المرور غلط");
     return;
   }
 
-  const { data, error } = await supabase
-    .from("requests")
-    .select("*")
-    .order("created_at", { ascending: false });
+  const { data, error } = await supabase.from("requests").select("*");
 
-  if (error) {
-    alert("خطأ: " + error.message);
+  if(error){
+    alert(error.message);
     return;
   }
 
   let html = "";
 
-  if (!data || data.length === 0) {
-    html = "<p>لا توجد طلبات حتى الآن</p>";
+  if(data.length === 0){
+    html = "لا توجد طلبات";
   } else {
-    data.forEach(x => {
-      html += `
-        <div class="card">
-          <b>${x.name || ""}</b><br>
-          📞 ${x.phone || ""}<br>
-          🛠️ ${x.service || ""}<br>
-          📝 ${x.notes || ""}<br>
-        </div>
-      `;
+    data.forEach(x=>{
+      html += `<div class="card">
+        <b>${x.name}</b><br>
+        ${x.phone}<br>
+        ${x.service}<br>
+        ${x.notes || ""}
+      </div>`;
     });
   }
 
   document.getElementById("data").innerHTML = html;
-});
+}
 </script>
 
 </body>
