@@ -1,47 +1,204 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-<meta charset="UTF-8">
-<title>Relax Fix Test</title>
-</head>
-<body style="background:#111;color:white;font-family:Arial;padding:30px">
-
-<h1>Relax Fix - إرسال طلب</h1>
-
-<form id="form">
-  <input id="name" placeholder="الاسم" required><br><br>
-  <input id="phone" placeholder="رقم الهاتف" required><br><br>
-  <input id="service" placeholder="الخدمة" required><br><br>
-  <textarea id="notes" placeholder="ملاحظات"></textarea><br><br>
-  <button type="submit">إرسال الطلب</button>
-</form>
-
-<script type="module">
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+const http = require("http");
+const { createClient } = require("@supabase/supabase-js");
 
 const supabase = createClient(
   "https://nmzxrjdxvmmzzmajrskm.supabase.co",
   "sb_publishable_qXOPVaD5_f60qf1UbYrm2A_sH9c0lW5"
 );
 
-document.getElementById("form").addEventListener("submit", async (e) => {
-  e.preventDefault();
+const PHONE = "971588259848";
 
-  const { error } = await supabase.from("requests").insert([{
-    name: document.getElementById("name").value,
-    phone: document.getElementById("phone").value,
-    service: document.getElementById("service").value,
-    notes: document.getElementById("notes").value,
-    status: "new"
-  }]);
+const server = http.createServer(async (req, res) => {
 
-  if (error) {
-    alert("خطأ: " + error.message);
-  } else {
-    alert("تم إرسال الطلب ✅");
-  }
-});
-</script>
+if(req.method === "GET"){
+res.writeHead(200, {"Content-Type":"text/html"});
+res.end(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relax Fix UAE</title>
+
+<style>
+body{
+margin:0;
+font-family:Arial;
+background:#060b17;
+color:white;
+}
+
+/* HEADER */
+header{
+display:flex;
+justify-content:space-between;
+padding:20px;
+background:#020617;
+}
+
+.logo{
+font-size:24px;
+font-weight:bold;
+}
+
+/* HERO */
+.hero{
+padding:60px 20px;
+text-align:center;
+background:linear-gradient(135deg,#00ff88,#00bfff);
+color:black;
+}
+
+.hero h1{
+font-size:40px;
+}
+
+.btn{
+display:inline-block;
+padding:12px 20px;
+margin:5px;
+border-radius:10px;
+font-weight:bold;
+text-decoration:none;
+}
+
+.call{background:#000;color:#fff;}
+.whatsapp{background:#25D366;color:white;}
+
+/* SERVICES */
+.services{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+gap:20px;
+padding:30px;
+}
+
+.card{
+background:#0f172a;
+padding:20px;
+border-radius:15px;
+text-align:center;
+}
+
+/* FORM */
+.form{
+padding:30px;
+}
+
+input,textarea{
+width:100%;
+padding:12px;
+margin:8px 0;
+border-radius:10px;
+border:none;
+}
+
+button{
+width:100%;
+padding:15px;
+background:#00ff88;
+border:none;
+font-weight:bold;
+border-radius:10px;
+}
+
+/* FLOAT */
+.float-wa{
+position:fixed;
+bottom:20px;
+right:20px;
+background:#25D366;
+color:white;
+padding:15px;
+border-radius:50px;
+}
+
+.float-call{
+position:fixed;
+bottom:80px;
+right:20px;
+background:#00bfff;
+color:white;
+padding:15px;
+border-radius:50px;
+}
+</style>
+
+</head>
+
+<body>
+
+<header>
+<div class="logo">🔥 Relax Fix UAE</div>
+<div>
+<a class="btn call" href="tel:+${PHONE}">Call</a>
+<a class="btn whatsapp" target="_blank" href="https://wa.me/${PHONE}">WhatsApp</a>
+</div>
+</header>
+
+<section class="hero">
+<h1>Best Maintenance Services in UAE</h1>
+<p>AC • Tank Cleaning • Pest Control</p>
+<a class="btn call" href="#form">Book Now</a>
+<a class="btn whatsapp" target="_blank" href="https://wa.me/${PHONE}">WhatsApp</a>
+</section>
+
+<section class="services">
+<div class="card">❄️ AC Maintenance</div>
+<div class="card">💧 Tank Cleaning</div>
+<div class="card">🐜 Pest Control</div>
+</section>
+
+<section class="form" id="form">
+<h2>Book Service</h2>
+<form method="POST">
+<input name="name" placeholder="Name" required>
+<input name="phone" placeholder="Phone" required>
+<input name="service" placeholder="Service">
+<textarea name="message" placeholder="Message"></textarea>
+<button type="submit">Send</button>
+</form>
+</section>
+
+<a class="float-wa" href="https://wa.me/${PHONE}">💬</a>
+<a class="float-call" href="tel:+${PHONE}">📞</a>
 
 </body>
 </html>
+`);
+return;
+}
+
+/* POST */
+if(req.method === "POST"){
+let body="";
+req.on("data",chunk=>body+=chunk);
+
+req.on("end", async ()=>{
+
+const data = new URLSearchParams(body);
+
+await supabase.from("requests").insert([{
+name:data.get("name"),
+phone:data.get("phone"),
+service:data.get("service"),
+notes:data.get("message")
+}]);
+
+const msg = encodeURIComponent(
+"New Order:\nName:"+data.get("name")+
+"\nPhone:"+data.get("phone")+
+"\nService:"+data.get("service")
+);
+
+res.writeHead(200,{"Content-Type":"text/html"});
+res.end(`
+<h1>Saved Successfully</h1>
+<a href="https://wa.me/${PHONE}?text=${msg}">Open WhatsApp</a>
+`);
+});
+}
+
+});
+
+server.listen(process.env.PORT || 3000);
