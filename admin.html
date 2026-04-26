@@ -2,7 +2,8 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>Dashboard</title>
+<title>Relax Fix Dashboard</title>
+
 <style>
 body{background:#111;color:#fff;font-family:Arial;text-align:center;padding:20px}
 input{padding:10px;border-radius:8px}
@@ -29,6 +30,7 @@ const supabase = createClient(
 );
 
 window.loadData = async function(){
+
   const pass = document.getElementById("pass").value;
 
   if(pass !== "123456"){
@@ -36,7 +38,10 @@ window.loadData = async function(){
     return;
   }
 
-  const { data, error } = await supabase.from("requests").select("*");
+  const { data, error } = await supabase
+    .from("requests")
+    .select("*")
+    .order("created_at", { ascending: false });
 
   if(error){
     alert(error.message);
@@ -45,15 +50,15 @@ window.loadData = async function(){
 
   let html = "";
 
-  if(data.length === 0){
+  if(!data || data.length === 0){
     html = "لا توجد طلبات";
   } else {
     data.forEach(x=>{
       html += `<div class="card">
-        <b>${x.name}</b><br>
-        ${x.phone}<br>
-        ${x.service}<br>
-        ${x.notes || ""}
+        <b>${x.name || ""}</b><br>
+        📞 ${x.phone || ""}<br>
+        🛠️ ${x.service || ""}<br>
+        📝 ${x.notes || ""}
       </div>`;
     });
   }
