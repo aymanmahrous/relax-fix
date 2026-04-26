@@ -1,25 +1,10 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-<meta charset="UTF-8">
-<title>Relax Fix Dashboard</title>
-
-<style>
-body{background:#111;color:#fff;font-family:Arial;text-align:center;padding:20px}
-input{padding:10px;border-radius:8px}
-button{padding:10px;background:#27e0ff;border:none;border-radius:8px;cursor:pointer}
-.card{background:#222;padding:10px;margin:10px;border-radius:10px}
-</style>
-</head>
-
-<body>
-
-<h1>Dashboard</h1>
-
-<input id="pass" placeholder="كلمة المرور">
-<button onclick="loadData()">فتح</button>
-
-<div id="data"></div>
+<form id="form">
+  <input id="name" placeholder="الاسم" required><br><br>
+  <input id="phone" placeholder="رقم الهاتف" required><br><br>
+  <input id="service" placeholder="الخدمة" required><br><br>
+  <textarea id="notes" placeholder="ملاحظات"></textarea><br><br>
+  <button type="submit">إرسال الطلب</button>
+</form>
 
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
@@ -29,43 +14,23 @@ const supabase = createClient(
   "sb_publishable_qXOPVaD5_f60qf1UbYrm2A_sH9c0lW5"
 );
 
-window.loadData = async function(){
+document.getElementById("form").addEventListener("submit", async (e) => {
+  e.preventDefault();
 
-  const pass = document.getElementById("pass").value;
+  const name = document.getElementById("name").value;
+  const phone = document.getElementById("phone").value;
+  const service = document.getElementById("service").value;
+  const notes = document.getElementById("notes").value;
 
-  if(pass !== "123456"){
-    alert("كلمة المرور غلط");
-    return;
-  }
+  const { error } = await supabase.from("requests").insert([
+    { name, phone, service, notes }
+  ]);
 
-  const { data, error } = await supabase
-    .from("requests")
-    .select("*")
-    .order("created_at", { ascending: false });
-
-  if(error){
-    alert(error.message);
-    return;
-  }
-
-  let html = "";
-
-  if(!data || data.length === 0){
-    html = "لا توجد طلبات";
+  if (error) {
+    alert("خطأ: " + error.message);
   } else {
-    data.forEach(x=>{
-      html += `<div class="card">
-        <b>${x.name || ""}</b><br>
-        📞 ${x.phone || ""}<br>
-        🛠️ ${x.service || ""}<br>
-        📝 ${x.notes || ""}
-      </div>`;
-    });
+    alert("تم إرسال الطلب ✅");
+    document.getElementById("form").reset();
   }
-
-  document.getElementById("data").innerHTML = html;
-}
+});
 </script>
-
-</body>
-</html>
