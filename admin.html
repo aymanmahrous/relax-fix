@@ -1,1 +1,70 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>Relax Fix Dashboard</title>
+<style>
+body{background:#111;color:#fff;font-family:Arial;text-align:center;padding:20px}
+input{padding:10px;border-radius:8px}
+button{padding:10px;background:#27e0ff;border:none;border-radius:8px;cursor:pointer}
+.card{background:#222;padding:12px;margin:10px;border-radius:10px}
+</style>
+</head>
+<body>
 
+<h1>Dashboard</h1>
+
+<input id="pass" placeholder="كلمة المرور">
+<button id="openBtn">فتح</button>
+
+<div id="data"></div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+
+const supabase = createClient(
+  "https://nmzxrjdxvmmzzmajrskm.supabase.co",
+  "sb_publishable_qXOPVaD5_f60qf1UbYrm2A_sH9c0lW5"
+);
+
+document.getElementById("openBtn").addEventListener("click", async () => {
+  const pass = document.getElementById("pass").value;
+
+  if (pass !== "123456") {
+    alert("كلمة المرور غلط");
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("requests")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    alert("خطأ: " + error.message);
+    return;
+  }
+
+  let html = "";
+
+  if (!data || data.length === 0) {
+    html = "<p>لا توجد طلبات حتى الآن</p>";
+  } else {
+    data.forEach(x => {
+      html += `
+        <div class="card">
+          <b>${x.name || ""}</b><br>
+          📞 ${x.phone || ""}<br>
+          🛠️ ${x.service || ""}<br>
+          📝 ${x.notes || ""}<br>
+        </div>
+      `;
+    });
+  }
+
+  document.getElementById("data").innerHTML = html;
+});
+</script>
+
+</body>
+</html>
