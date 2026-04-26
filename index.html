@@ -2,23 +2,19 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>Dashboard</title>
-<style>
-body{background:#111;color:#fff;font-family:Arial;text-align:center;padding:20px}
-input{padding:10px;border-radius:8px}
-button{padding:10px;background:#27e0ff;border:none;border-radius:8px}
-.card{background:#222;padding:10px;margin:10px;border-radius:10px}
-</style>
+<title>Relax Fix Test</title>
 </head>
+<body style="background:#111;color:white;font-family:Arial;padding:30px">
 
-<body>
+<h1>Relax Fix - إرسال طلب</h1>
 
-<h1>Dashboard</h1>
-
-<input id="pass" placeholder="كلمة المرور">
-<button onclick="load()">فتح</button>
-
-<div id="data"></div>
+<form id="form">
+  <input id="name" placeholder="الاسم" required><br><br>
+  <input id="phone" placeholder="رقم الهاتف" required><br><br>
+  <input id="service" placeholder="الخدمة" required><br><br>
+  <textarea id="notes" placeholder="ملاحظات"></textarea><br><br>
+  <button type="submit">إرسال الطلب</button>
+</form>
 
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
@@ -28,29 +24,23 @@ const supabase = createClient(
   "sb_publishable_qXOPVaD5_f60qf1UbYrm2A_sH9c0lW5"
 );
 
-async function load(){
-  let pass = document.getElementById("pass").value;
+document.getElementById("form").addEventListener("submit", async (e) => {
+  e.preventDefault();
 
-  if(pass !== "123456"){
-    alert("كلمة المرور غلط");
-    return;
+  const { error } = await supabase.from("requests").insert([{
+    name: document.getElementById("name").value,
+    phone: document.getElementById("phone").value,
+    service: document.getElementById("service").value,
+    notes: document.getElementById("notes").value,
+    status: "new"
+  }]);
+
+  if (error) {
+    alert("خطأ: " + error.message);
+  } else {
+    alert("تم إرسال الطلب ✅");
   }
-
-  let { data } = await supabase.from("requests").select("*");
-
-  let html = "";
-
-  data.forEach(x=>{
-    html += "<div class='card'>";
-    html += "<b>" + x.name + "</b><br>";
-    html += x.phone + "<br>";
-    html += x.service + "<br>";
-    html += x.notes + "<br>";
-    html += "</div>";
-  });
-
-  document.getElementById("data").innerHTML = html;
-}
+});
 </script>
 
 </body>
