@@ -1,191 +1,134 @@
-// RELAX FIX SaaS - SELLING VERSION 🔥
-
-const express = require("express");
-const fetch = require("node-fetch");
-const Stripe = require("stripe");
-
-const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+const http = require("http");
 
 const PORT = process.env.PORT || 10000;
 
-// ===== ENV =====
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
+const html = `
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Relax Fix SaaS</title>
 
-const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
-const STRIPE_PRICE_ID = process.env.STRIPE_PRICE_ID;
-const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
-const BASE_URL = process.env.BASE_URL || "http://localhost:10000";
+<style>
+body{
+  margin:0;
+  font-family:system-ui;
+  background:#0b0f2a;
+  color:white;
+  text-align:center;
+}
 
-const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY) : null;
+/* Container */
+.container{
+  max-width:900px;
+  margin:auto;
+  padding:20px;
+}
 
-// ===== HOME =====
-app.get("/", (req, res) => {
-  res.send(`
-  <html>
-  <head>
-  <title>Relax Fix SaaS</title>
-  <style>
-    body{background:#0b0f1a;color:#fff;font-family:sans-serif;text-align:center;padding:20px}
-    button{padding:15px 25px;margin:10px;border:none;border-radius:12px;font-size:18px;cursor:pointer}
-    .b1{background:#00c6ff}
-    .b2{background:#ffb347}
-    .b3{background:#00ff9d}
-    .card{background:#111a2e;margin:20px;padding:20px;border-radius:20px}
-    input{padding:10px;width:80%;margin:5px;border-radius:8px;border:none}
-    a{color:#00c6ff}
-  </style>
-  </head>
-  <body>
+/* Cards */
+.card{
+  background:#11183a;
+  padding:20px;
+  margin:20px 0;
+  border-radius:20px;
+  box-shadow:0 10px 30px rgba(0,0,0,.4);
+}
 
-  <h1>⚡ Relax Fix SaaS</h1>
+/* Buttons */
+button{
+  padding:12px 18px;
+  margin:10px;
+  border:none;
+  border-radius:12px;
+  cursor:pointer;
+  font-size:16px;
+}
 
-  <button class="b1" onclick="location.href='/ai-ad'">AI Ads 🎨</button>
-  <button class="b2" onclick="location.href='/video'">Video 🎬</button>
-  <button class="b3" onclick="location.href='/checkout'">اشتراك الآن 💰</button>
+.btn1{background:#ff9800;color:black}
+.btn2{background:#00c2ff}
+.btn3{background:#00d084}
 
-  <div class="card">
-    <h2>طلب خدمة</h2>
-    <form action="/request" method="POST">
-      <input name="name" placeholder="اسمك"><br>
-      <input name="phone" placeholder="رقمك"><br>
-      <input name="service" placeholder="نوع الخدمة"><br>
-      <button>إرسال</button>
-    </form>
-  </div>
+/* Inputs */
+input{
+  padding:12px;
+  margin:8px;
+  border-radius:10px;
+  border:none;
+  width:80%;
+  max-width:300px;
+}
 
-  <div class="card">
-    <h2>Admin</h2>
-    <a href="/admin">لوحة التحكم</a>
-  </div>
+/* Fix text breaking */
+p, h1, h2 {
+  word-wrap: break-word;
+  line-height:1.6;
+}
+</style>
 
-  </body>
-  </html>
-  `);
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>🚀 Relax Fix SaaS</h1>
+
+<div class="card">
+<h2>🔐 تسجيل / دخول</h2>
+<input placeholder="Email">
+<input placeholder="Password"><br>
+<button class="btn1" onclick="alert('قريبًا')">Register</button>
+<button class="btn2" onclick="alert('قريبًا')">Login</button>
+</div>
+
+<div class="card">
+<h2>🎨 AI Ads</h2>
+<input id="ad" placeholder="اكتب إعلانك">
+<button class="btn1" onclick="genAd()">Generate</button>
+<p id="adResult"></p>
+</div>
+
+<div class="card">
+<h2>🎬 Video Generator</h2>
+<input id="vid" placeholder="فكرة الفيديو">
+<button class="btn2" onclick="genVid()">Generate</button>
+<p id="vidResult"></p>
+</div>
+
+<div class="card">
+<h2>📩 طلب خدمة</h2>
+<input placeholder="اسمك">
+<input placeholder="رقمك">
+<input placeholder="نوع الخدمة"><br>
+<button class="btn3" onclick="alert('تم الإرسال')">Send</button>
+</div>
+
+</div>
+
+<script>
+function genAd(){
+  const text=document.getElementById("ad").value;
+  document.getElementById("adResult").innerText=
+  "🔥 إعلان احترافي:\\n"+text+"\\n📞 احجز الآن";
+}
+
+function genVid(){
+  const text=document.getElementById("vid").value;
+  document.getElementById("vidResult").innerText=
+  "🎬 فيديو:\\n"+text+"\\n🚀 Relax Fix";
+}
+</script>
+
+</body>
+</html>
+`;
+
+const server = http.createServer((req,res)=>{
+  res.writeHead(200,{"Content-Type":"text/html"});
+  res.end(html);
 });
 
-// ===== REQUEST SAVE =====
-app.post("/request", async (req, res) => {
-  const { name, phone, service } = req.body;
-
-  try {
-    await fetch(SUPABASE_URL + "/rest/v1/requests", {
-      method: "POST",
-      headers: {
-        apikey: SUPABASE_KEY,
-        Authorization: "Bearer " + SUPABASE_KEY,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ name, phone, service }),
-    });
-  } catch (e) {
-    console.log(e);
-  }
-
-  res.send("✅ تم إرسال الطلب");
-});
-
-// ===== ADMIN =====
-app.get("/admin", async (req, res) => {
-  const r = await fetch(SUPABASE_URL + "/rest/v1/requests", {
-    headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: "Bearer " + SUPABASE_KEY,
-    },
-  });
-
-  const data = await r.json();
-
-  let html = "<h1>لوحة الطلبات</h1>";
-  data.forEach((x) => {
-    html += `
-    <div style="border:1px solid #ccc;padding:10px;margin:10px">
-    👤 ${x.name}<br>
-    📞 ${x.phone}<br>
-    🔧 ${x.service}
-    </div>`;
-  });
-
-  res.send(html);
-});
-
-// ===== STRIPE CHECKOUT =====
-app.get("/checkout", async (req, res) => {
-  if (!stripe) return res.send("Stripe not configured");
-
-  const session = await stripe.checkout.sessions.create({
-    mode: "subscription",
-    line_items: [{ price: STRIPE_PRICE_ID, quantity: 1 }],
-    success_url: BASE_URL + "/success",
-    cancel_url: BASE_URL + "/",
-  });
-
-  res.redirect(session.url);
-});
-
-// ===== SUCCESS =====
-app.get("/success", (req, res) => {
-  res.send("<h1>🎉 تم الاشتراك بنجاح</h1>");
-});
-
-// ===== STRIPE WEBHOOK =====
-app.post("/webhook", express.raw({ type: "application/json" }), (req, res) => {
-  if (!stripe) return res.sendStatus(200);
-
-  let event;
-  try {
-    event = stripe.webhooks.constructEvent(
-      req.body,
-      req.headers["stripe-signature"],
-      STRIPE_WEBHOOK_SECRET
-    );
-  } catch (err) {
-    console.log("Webhook error:", err.message);
-    return res.sendStatus(400);
-  }
-
-  if (event.type === "checkout.session.completed") {
-    console.log("💰 New subscription");
-  }
-
-  res.sendStatus(200);
-});
-
-// ===== AI ADS =====
-app.get("/ai-ad", (req, res) => {
-  res.send(`
-  <h1>AI Ads 🎨</h1>
-  <form method="POST">
-  <input name="idea" placeholder="فكرة الإعلان">
-  <button>Generate</button>
-  </form>
-  `);
-});
-
-app.post("/ai-ad", (req, res) => {
-  const { idea } = req.body;
-  res.send(`<pre>🔥 إعلان:\n${idea}\nRelax Fix</pre>`);
-});
-
-// ===== VIDEO =====
-app.get("/video", (req, res) => {
-  res.send(`
-  <h1>Video 🎬</h1>
-  <form method="POST">
-  <input name="idea" placeholder="فكرة الفيديو">
-  <button>Generate</button>
-  </form>
-  `);
-});
-
-app.post("/video", (req, res) => {
-  const { idea } = req.body;
-  res.send(`<pre>🎬 Script:\n${idea}\nCTA: احجز الآن</pre>`);
-});
-
-// ===== START =====
-app.listen(PORT, () => {
-  console.log("🔥 Running on " + PORT);
+server.listen(PORT,"0.0.0.0",()=>{
+  console.log("Running on "+PORT);
 });
