@@ -1,1 +1,1 @@
-{"name":"relaxfix-bilingual-saas","version":"1.0.0","main":"index.js","scripts":{"start":"node index.js"},"dependencies":{"@supabase/supabase-js":"^2.49.1"},"engines":{"node":">=18"}}
+{"name":"relaxfix-bilingual-saas","version":"1.0.0","main":"index.js","scripts":{"start":"node index.js"},"dependencies":{"@supabase/supabase-js":"^2.49.1"},"engines":{"node":">=18"}} 
