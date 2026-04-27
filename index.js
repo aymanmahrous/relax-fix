@@ -1,146 +1,174 @@
-// ===== Relax Fix SaaS FULL VERSION (Stable Render Build) =====
+// RELAX FIX GLOBAL SaaS - ONE FILE 🔥
 
-const http = require("http");
+const express = require("express");
+const fetch = require("node-fetch");
+const app = express();
 
-// ENV (اختياري Supabase)
-const SUPABASE_URL = process.env.SUPABASE_URL || "";
-const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || "";
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 const PORT = process.env.PORT || 10000;
 
-// ===== HTML UI =====
-const html = `
-<!DOCTYPE html>
-<html lang="ar">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Relax Fix Global SaaS</title>
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
 
-<style>
-body{
-  margin:0;
-  font-family:sans-serif;
-  background:#0b0f2a;
-  color:white;
-  text-align:center;
-}
-h1{margin-top:30px}
-.container{padding:20px}
+// ===== HOME UI =====
+app.get("/", (req, res) => {
+  res.send(`
+  <html>
+  <head>
+  <title>Relax Fix SaaS</title>
+  <style>
+    body {
+      background:#0b0f1a;
+      color:white;
+      font-family:sans-serif;
+      text-align:center;
+      padding:20px;
+    }
+    button {
+      padding:15px 25px;
+      margin:10px;
+      border:none;
+      border-radius:10px;
+      cursor:pointer;
+      font-size:18px;
+    }
+    .btn1{background:#00c6ff}
+    .btn2{background:#ffb347}
+    .card{
+      background:#111a2e;
+      margin:20px;
+      padding:20px;
+      border-radius:20px;
+    }
+  </style>
+  </head>
 
-button{
-  padding:12px 20px;
-  margin:10px;
-  border:none;
-  border-radius:12px;
-  cursor:pointer;
-  font-size:16px;
-}
+  <body>
 
-.primary{background:#ff9800;color:black}
-.secondary{background:#00c2ff;color:white}
-.green{background:#00d084}
+  <h1>⚡ Relax Fix Global SaaS</h1>
 
-input{
-  padding:10px;
-  margin:5px;
-  border-radius:10px;
-  border:none;
-  width:200px;
-}
+  <button class="btn1" onclick="location.href='/ai-ad'">AI Ads 🎨</button>
+  <button class="btn2" onclick="location.href='/video'">Video 🎬</button>
 
-.card{
-  background:#11183a;
-  margin:20px;
-  padding:20px;
-  border-radius:20px;
-}
-</style>
-</head>
+  <div class="card">
+    <h2>طلب خدمة صيانة</h2>
+    <form action="/request" method="POST">
+      <input name="name" placeholder="اسمك"><br><br>
+      <input name="phone" placeholder="رقمك"><br><br>
+      <input name="service" placeholder="نوع الخدمة"><br><br>
+      <button>إرسال</button>
+    </form>
+  </div>
 
-<body>
+  <div class="card">
+    <h2>لوحة الإدارة</h2>
+    <a href="/admin">دخول الأدمن</a>
+  </div>
 
-<h1>🚀 Relax Fix SaaS</h1>
-
-<div class="container">
-
-<div class="card">
-<h2>🔐 تسجيل / دخول</h2>
-<input id="email" placeholder="Email">
-<input id="pass" placeholder="Password"><br>
-<button class="primary" onclick="register()">Register</button>
-<button class="secondary" onclick="login()">Login</button>
-</div>
-
-<div class="card">
-<h2>🎨 AI Ads</h2>
-<input id="ad" placeholder="اكتب اعلان">
-<button class="primary" onclick="aiAd()">Generate</button>
-<p id="adResult"></p>
-</div>
-
-<div class="card">
-<h2>🎬 Video Generator</h2>
-<input id="video" placeholder="وصف الفيديو">
-<button class="secondary" onclick="video()">Generate</button>
-<p id="videoResult"></p>
-</div>
-
-<div class="card">
-<h2>📩 طلب خدمة</h2>
-<input id="name" placeholder="اسمك">
-<input id="phone" placeholder="رقمك">
-<input id="service" placeholder="نوع الخدمة"><br>
-<button class="green" onclick="send()">Send Request</button>
-</div>
-
-<div class="card">
-<h2>💰 الاشتراكات</h2>
-<button class="primary">Starter</button>
-<button class="secondary">Pro</button>
-<button class="green">Business</button>
-</div>
-
-</div>
-
-<script>
-
-async function register(){
- alert("تم التسجيل (نسخة تجريبية)");
-}
-
-async function login(){
- alert("تم تسجيل الدخول");
-}
-
-async function aiAd(){
- const text = document.getElementById("ad").value;
- document.getElementById("adResult").innerText =
- "🔥 اعلان احترافي:\\n" + text + "\\n📞 احجز الآن";
-}
-
-async function video(){
- const text = document.getElementById("video").value;
- document.getElementById("videoResult").innerText =
- "🎬 سكريبت فيديو:\\n" + text + "\\n🚀 Relax Fix";
-}
-
-async function send(){
- alert("تم ارسال الطلب بنجاح");
-}
-
-</script>
-
-</body>
-</html>
-`;
-
-// ===== SERVER =====
-const server = http.createServer((req, res) => {
-  res.writeHead(200, { "Content-Type": "text/html" });
-  res.end(html);
+  </body>
+  </html>
+  `);
 });
 
-server.listen(PORT, () => {
-  console.log("🚀 Relax Fix SaaS Running on port " + PORT);
+// ===== SAVE REQUEST =====
+app.post("/request", async (req, res) => {
+  const { name, phone, service } = req.body;
+
+  await fetch(SUPABASE_URL + "/rest/v1/requests", {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: "Bearer " + SUPABASE_KEY,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ name, phone, service }),
+  });
+
+  res.send("✅ تم إرسال الطلب");
+});
+
+// ===== ADMIN =====
+app.get("/admin", async (req, res) => {
+  const data = await fetch(SUPABASE_URL + "/rest/v1/requests", {
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: "Bearer " + SUPABASE_KEY,
+    },
+  });
+
+  const json = await data.json();
+
+  let html = "<h1>لوحة الطلبات</h1>";
+
+  json.forEach((r) => {
+    html += `
+      <div style="border:1px solid #ccc;padding:10px;margin:10px">
+      👤 ${r.name}<br>
+      📞 ${r.phone}<br>
+      🔧 ${r.service}
+      </div>
+    `;
+  });
+
+  res.send(html);
+});
+
+// ===== AI ADS =====
+app.get("/ai-ad", (req, res) => {
+  res.send(`
+    <h1>AI Ads Generator 🎨</h1>
+    <form method="POST">
+      <input name="idea" placeholder="اكتب فكرة الإعلان">
+      <button>Generate</button>
+    </form>
+  `);
+});
+
+app.post("/ai-ad", (req, res) => {
+  const { idea } = req.body;
+
+  const result = `
+🔥 إعلان احترافي:
+
+${idea}
+
+📞 احجز الآن مع Relax Fix
+أفضل جودة + أسرع خدمة
+`;
+
+  res.send("<pre>" + result + "</pre>");
+});
+
+// ===== VIDEO =====
+app.get("/video", (req, res) => {
+  res.send(`
+    <h1>Video Generator 🎬</h1>
+    <form method="POST">
+      <input name="idea" placeholder="فكرة الفيديو">
+      <button>Generate</button>
+    </form>
+  `);
+});
+
+app.post("/video", (req, res) => {
+  const { idea } = req.body;
+
+  const script = `
+🎬 Script:
+
+Scene 1: ${idea}
+Scene 2: عرض الخدمة
+Scene 3: Call To Action
+
+Relax Fix - احجز الآن
+`;
+
+  res.send("<pre>" + script + "</pre>");
+});
+
+// ===== START SERVER =====
+app.listen(PORT, () => {
+  console.log("🔥 Relax Fix SaaS running on port " + PORT);
 });
