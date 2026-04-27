@@ -1,1 +1,0 @@
-ارفع index.html على Netlify. شغل schema.sql في Supabase. كل الأزرار تم تعديلها.
