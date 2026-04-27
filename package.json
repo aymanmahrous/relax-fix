@@ -1,11 +1,10 @@
 {
-  "name": "relaxfix2026-pro",
+  "name": "relax-fix",
   "version": "1.0.0",
   "main": "index.js",
-  "scripts": {
-    "start": "node index.js"
-  },
+  "scripts": { "start": "node index.js" },
   "dependencies": {
-    "@supabase/supabase-js": "^2.45.0"
+    "@supabase/supabase-js": "^2.45.0",
+    "stripe": "^17.0.0"
   }
 }
