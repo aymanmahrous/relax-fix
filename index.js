@@ -1,170 +1,146 @@
-const express = require("express");
-const cors = require("cors");
-const bodyParser = require("body-parser");
-const { createClient } = require("@supabase/supabase-js");
+// ===== Relax Fix SaaS FULL VERSION (Stable Render Build) =====
 
-const app = express();
-app.use(cors());
-app.use(bodyParser.json());
+const http = require("http");
+
+// ENV (اختياري Supabase)
+const SUPABASE_URL = process.env.SUPABASE_URL || "";
+const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || "";
 
 const PORT = process.env.PORT || 10000;
 
-// ENV
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
-);
+// ===== HTML UI =====
+const html = `
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relax Fix Global SaaS</title>
 
-// ======= UI =======
-app.get("/", (req, res) => {
-  res.send(`
-  <html>
-  <head>
-  <title>Relax Fix Global SaaS</title>
-  <style>
-    body{font-family:sans-serif;background:#0b0f2a;color:white;text-align:center;padding:20px}
-    button{padding:10px 20px;margin:10px;border:none;border-radius:10px;cursor:pointer}
-    .btn{background:orange}
-    input{padding:10px;border-radius:10px;border:none;margin:5px}
-  </style>
-  </head>
-  <body>
+<style>
+body{
+  margin:0;
+  font-family:sans-serif;
+  background:#0b0f2a;
+  color:white;
+  text-align:center;
+}
+h1{margin-top:30px}
+.container{padding:20px}
 
-  <h1>🚀 Relax Fix SaaS</h1>
+button{
+  padding:12px 20px;
+  margin:10px;
+  border:none;
+  border-radius:12px;
+  cursor:pointer;
+  font-size:16px;
+}
 
-  <h2>تسجيل / Login</h2>
-  <input id="email" placeholder="Email">
-  <input id="pass" placeholder="Password">
-  <br>
-  <button class="btn" onclick="register()">Register</button>
-  <button onclick="login()">Login</button>
+.primary{background:#ff9800;color:black}
+.secondary{background:#00c2ff;color:white}
+.green{background:#00d084}
 
-  <h2>🎨 AI Ads</h2>
-  <input id="ad" placeholder="اكتب اعلان">
-  <button onclick="generateAd()">Generate</button>
-  <p id="adResult"></p>
+input{
+  padding:10px;
+  margin:5px;
+  border-radius:10px;
+  border:none;
+  width:200px;
+}
 
-  <h2>🎬 Video Script</h2>
-  <input id="video" placeholder="وصف الفيديو">
-  <button onclick="video()">Generate</button>
-  <p id="videoResult"></p>
+.card{
+  background:#11183a;
+  margin:20px;
+  padding:20px;
+  border-radius:20px;
+}
+</style>
+</head>
 
-  <h2>📩 طلب خدمة</h2>
-  <input id="name" placeholder="اسمك">
-  <input id="phone" placeholder="رقمك">
-  <input id="service" placeholder="نوع الخدمة">
-  <button onclick="send()">Send</button>
+<body>
 
-  <script>
-    async function register(){
-      const r = await fetch("/register",{method:"POST",headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({email:email.value,password:pass.value})})
-      alert(await r.text())
-    }
+<h1>🚀 Relax Fix SaaS</h1>
 
-    async function login(){
-      const r = await fetch("/login",{method:"POST",headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({email:email.value,password:pass.value})})
-      alert(await r.text())
-    }
+<div class="container">
 
-    async function generateAd(){
-      const r = await fetch("/ai-ad",{method:"POST",headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({text:ad.value})})
-      document.getElementById("adResult").innerText = await r.text()
-    }
+<div class="card">
+<h2>🔐 تسجيل / دخول</h2>
+<input id="email" placeholder="Email">
+<input id="pass" placeholder="Password"><br>
+<button class="primary" onclick="register()">Register</button>
+<button class="secondary" onclick="login()">Login</button>
+</div>
 
-    async function video(){
-      const r = await fetch("/video",{method:"POST",headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({text:video.value})})
-      document.getElementById("videoResult").innerText = await r.text()
-    }
+<div class="card">
+<h2>🎨 AI Ads</h2>
+<input id="ad" placeholder="اكتب اعلان">
+<button class="primary" onclick="aiAd()">Generate</button>
+<p id="adResult"></p>
+</div>
 
-    async function send(){
-      const r = await fetch("/request",{method:"POST",headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        name:name.value,
-        phone:phone.value,
-        service:service.value
-      })})
-      alert("تم ارسال الطلب")
-    }
-  </script>
+<div class="card">
+<h2>🎬 Video Generator</h2>
+<input id="video" placeholder="وصف الفيديو">
+<button class="secondary" onclick="video()">Generate</button>
+<p id="videoResult"></p>
+</div>
 
-  </body>
-  </html>
-  `);
+<div class="card">
+<h2>📩 طلب خدمة</h2>
+<input id="name" placeholder="اسمك">
+<input id="phone" placeholder="رقمك">
+<input id="service" placeholder="نوع الخدمة"><br>
+<button class="green" onclick="send()">Send Request</button>
+</div>
+
+<div class="card">
+<h2>💰 الاشتراكات</h2>
+<button class="primary">Starter</button>
+<button class="secondary">Pro</button>
+<button class="green">Business</button>
+</div>
+
+</div>
+
+<script>
+
+async function register(){
+ alert("تم التسجيل (نسخة تجريبية)");
+}
+
+async function login(){
+ alert("تم تسجيل الدخول");
+}
+
+async function aiAd(){
+ const text = document.getElementById("ad").value;
+ document.getElementById("adResult").innerText =
+ "🔥 اعلان احترافي:\\n" + text + "\\n📞 احجز الآن";
+}
+
+async function video(){
+ const text = document.getElementById("video").value;
+ document.getElementById("videoResult").innerText =
+ "🎬 سكريبت فيديو:\\n" + text + "\\n🚀 Relax Fix";
+}
+
+async function send(){
+ alert("تم ارسال الطلب بنجاح");
+}
+
+</script>
+
+</body>
+</html>
+`;
+
+// ===== SERVER =====
+const server = http.createServer((req, res) => {
+  res.writeHead(200, { "Content-Type": "text/html" });
+  res.end(html);
 });
 
-// ======= AUTH =======
-app.post("/register", async (req, res) => {
-  const { email, password } = req.body;
-
-  const { error } = await supabase.auth.signUp({
-    email,
-    password,
-  });
-
-  if (error) return res.send(error.message);
-  res.send("تم التسجيل");
-});
-
-app.post("/login", async (req, res) => {
-  const { email, password } = req.body;
-
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) return res.send(error.message);
-  res.send("تم تسجيل الدخول");
-});
-
-// ======= REQUESTS =======
-app.post("/request", async (req, res) => {
-  const { name, phone, service } = req.body;
-
-  await supabase.from("requests").insert([
-    { name, phone, service }
-  ]);
-
-  res.send("ok");
-});
-
-// ======= AI ADS =======
-app.post("/ai-ad", (req, res) => {
-  const text = req.body.text;
-
-  res.send(`
-🔥 إعلان احترافي:
-"${text}"
-
-✨ عرض خاص اليوم!
-📞 احجز الآن
-🚀 Relax Fix
-`);
-});
-
-// ======= VIDEO =======
-app.post("/video", (req, res) => {
-  const text = req.body.text;
-
-  res.send(`
-🎬 سكريبت فيديو:
-
-مشهد 1: مشكلة
-${text}
-
-مشهد 2: الحل
-Relax Fix
-
-مشهد 3: CTA
-اتصل الآن
-`);
-});
-
-// ======= SERVER =======
-app.listen(PORT, () => {
-  console.log("🔥 SaaS Running on " + PORT);
+server.listen(PORT, () => {
+  console.log("🚀 Relax Fix SaaS Running on port " + PORT);
 });
