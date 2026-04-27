@@ -110,3 +110,13 @@ if (req.method === "POST" && req.url === "/login") {
     res.end();
   });
 }
+if (req.method === "GET" && req.url === "/login") {
+  res.end(`
+  <h1>Login</h1>
+  <form method="POST" action="/login">
+    <input name="email" placeholder="Email" required />
+    <input name="password" type="password" placeholder="Password" required />
+    <button>Login</button>
+  </form>
+  `);
+  return;
