@@ -1,3 +1,4 @@
+
 const http = require("http");
 const { createClient } = require("@supabase/supabase-js");
 
@@ -85,3 +86,27 @@ async function delRow(id){if(!confirm("Delete / حذف؟"))return;const pass=doc
 
 const server=http.createServer(async(req,res)=>{try{const url=new URL(req.url,"http://localhost");if(req.method==="GET"&&url.pathname==="/health")return sendJson(res,{ok:true});if(req.method==="GET"&&url.pathname.startsWith("/admin"))return sendHtml(res,adminPage());if(req.method==="GET"&&url.pathname==="/api/requests"){if(url.searchParams.get("pass")!==ADMIN_PASS)return sendJson(res,{error:"Unauthorized"},401);const{data,error}=await supabase.from("requests").select("*").order("created_at",{ascending:false});return sendJson(res,error?{error:error.message}:data);}if(req.method==="POST"&&url.pathname==="/api/status"){if(url.searchParams.get("pass")!==ADMIN_PASS)return sendJson(res,{error:"Unauthorized"},401);const p=JSON.parse(await readBody(req)||"{}");const{error}=await supabase.from("requests").update({status:p.status}).eq("id",p.id);return sendJson(res,error?{error:error.message}:{ok:true});}if(req.method==="POST"&&url.pathname==="/api/delete"){if(url.searchParams.get("pass")!==ADMIN_PASS)return sendJson(res,{error:"Unauthorized"},401);const p=JSON.parse(await readBody(req)||"{}");const{error}=await supabase.from("requests").delete().eq("id",p.id);return sendJson(res,error?{error:error.message}:{ok:true});}if(req.method==="POST"&&url.pathname==="/request"){const p=new URLSearchParams(await readBody(req));const order={name:p.get("name")||"",phone:p.get("phone")||"",service:p.get("service")||"",notes:p.get("notes")||"",status:"new"};const{error}=await supabase.from("requests").insert([order]);if(error)return sendHtml(res,layout(`<div class="wrap" style="padding:60px;text-align:center"><h1>❌ Error</h1><p>${esc(error.message)}</p><a class="btn gold" href="/">Back</a></div>`));const msg=encodeURIComponent(`طلب جديد من Relax Fix\\nName/الاسم: ${order.name}\\nPhone/الهاتف: ${order.phone}\\nService/الخدمة: ${order.service}\\nDetails/التفاصيل: ${order.notes}`);const wa="https://wa.me/"+PHONE+"?text="+msg;return sendHtml(res,layout(`<div class="wrap" style="padding:60px;text-align:center"><h1 style="color:#22c55e">✅ تم حفظ الطلب / Request Saved</h1><p class="lead">سيتم فتح واتساب / WhatsApp will open.</p><a class="btn green" target="_blank" href="${wa}">Open WhatsApp</a><br><br><a class="btn gold" href="/">Home / الرئيسية</a><script>setTimeout(()=>window.open("${wa}","_blank"),800)</script></div>`));}return sendHtml(res,homePage());}catch(err){sendHtml(res,"<pre>"+esc(err.message)+"</pre>",500);}});
 server.listen(process.env.PORT||3000,()=>console.log("Relax Fix SaaS bilingual running"));
+if (req.method === "POST" && req.url === "/login") {
+  let body = "";
+  req.on("data", c => body += c);
+  req.on("end", async () => {
+    const p = new URLSearchParams(body);
+
+    const { data } = await supabase
+      .from("users")
+      .select("*")
+      .eq("email", p.get("email"))
+      .eq("password", p.get("password"))
+      .single();
+
+    if (!data) {
+      res.end("❌ Wrong login");
+      return;
+    }
+
+    res.writeHead(302, {
+      Location: "/dashboard?user=" + data.id
+    });
+    res.end();
+  });
+}
