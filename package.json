@@ -1,8 +1,10 @@
 {
-  "name": "relaxfix-global-saas",
+  "name": "relaxfix-pro",
   "version": "1.0.0",
   "main": "index.js",
-  "scripts": {"start": "node index.js"},
-  "dependencies": {"@supabase/supabase-js": "^2.49.1"},
-  "engines": {"node": ">=18"}
+  "scripts": { "start": "node index.js" },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.0.0",
+    "stripe": "^14.0.0"
+  }
 }
