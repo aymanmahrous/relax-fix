@@ -1,290 +1,315 @@
+// ===== Relax Fix PRO SaaS (One File, No deps) =====
 const http = require("http");
+const crypto = require("crypto");
 
 const PORT = process.env.PORT || 10000;
-const SUPABASE_URL = process.env.SUPABASE_URL || "";
-const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY || "";
 const PHONE = process.env.PHONE || "971588259848";
+const ADMIN_PASS = process.env.ADMIN_PASS || "123456";
+const SUPABASE_URL = process.env.SUPABASE_URL || "";
+const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || "";
 
-const memoryRequests = [];
+// ===== in-memory (fallback) =====
+const DB = {
+  users: [], // {id,email,coins,ref}
+  requests: [], // {id,name,phone,service,area,city,price,notes,status,created_at}
+  sessions: {} // token -> userId
+};
 
-function html(res, body) {
-  res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+function uid(){ return crypto.randomBytes(8).toString("hex"); }
+function now(){ return new Date().toISOString(); }
+
+// ===== helpers =====
+function html(res, body){
+  res.writeHead(200,{"Content-Type":"text/html; charset=utf-8"});
   res.end(body);
 }
-
-function json(res, data) {
-  res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+function json(res, data){
+  res.writeHead(200,{"Content-Type":"application/json; charset=utf-8"});
   res.end(JSON.stringify(data));
 }
-
-function readBody(req) {
-  return new Promise(resolve => {
-    let body = "";
-    req.on("data", c => body += c.toString());
-    req.on("end", () => resolve(body));
+function readBody(req){
+  return new Promise(r=>{
+    let b=""; req.on("data",c=>b+=c.toString());
+    req.on("end",()=>r(b));
   });
 }
+function parseJSON(b){ try{return JSON.parse(b||"{}")}catch{return {}} }
 
-async function saveRequest(data) {
-  if (!SUPABASE_URL || !SUPABASE_KEY) {
-    memoryRequests.unshift({ ...data, created_at: new Date().toISOString() });
-    return { ok: true, mode: "memory" };
-  }
-
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/requests`, {
-    method: "POST",
-    headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: `Bearer ${SUPABASE_KEY}`,
-      "Content-Type": "application/json",
-      Prefer: "return=minimal"
-    },
-    body: JSON.stringify(data)
-  });
-
-  if (!r.ok) {
-    memoryRequests.unshift({ ...data, created_at: new Date().toISOString() });
-    return { ok: true, mode: "memory-fallback" };
-  }
-
-  return { ok: true, mode: "supabase" };
+// ===== simple pricing =====
+function calcPrice(service, area){
+  const a = Number(area||0);
+  const map = {
+    "دهان": 10, // درهم/متر
+    "صيانة تكييف": 150,
+    "جبسون بورد": 90,
+    "سيراميك": 120,
+    "كهرباء": 80,
+    "سباكة": 70,
+    "تنظيف خزانات": 200,
+    "مكافحة حشرات": 180
+  };
+  if(!a) return map[service] || 100;
+  const per = map[service] || 100;
+  return Math.round(per * (a/10)); // تبسيط
 }
 
-async function getRequests() {
-  if (!SUPABASE_URL || !SUPABASE_KEY) return memoryRequests;
+// ===== AI (mock) =====
+function aiAd(s){
+  return `🔥 إعلان احترافي:
+${s||"خدمة صيانة"}
 
-  try {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/requests?select=*&order=created_at.desc`, {
-      headers: {
-        apikey: SUPABASE_KEY,
-        Authorization: `Bearer ${SUPABASE_KEY}`
-      }
-    });
+✔ سرعة التنفيذ
+✔ ضمان الجودة
+✔ فريق محترف
 
-    if (!r.ok) return memoryRequests;
-    return await r.json();
-  } catch {
-    return memoryRequests;
-  }
+📲 احجز الآن: https://wa.me/${PHONE}
+#RelaxFix #UAE`;
+}
+function aiVideo(s){
+  return `🎬 سكريبت:
+مشكلة في ${s||"الخدمة"}
+→ ظهور Relax Fix
+→ قبل/بعد
+→ CTA: احجز الآن`;
 }
 
-function aiAd(service) {
-  const s = service || "خدمة صيانة";
-  return `🔥 إعلان جاهز:
-
-هل تحتاج ${s} بسرعة واحترافية؟
-
-Relax Fix يوفر لك خدمة موثوقة داخل الإمارات:
-✅ استجابة سريعة
-✅ أسعار واضحة
-✅ متابعة عبر واتساب
-✅ فريق محترف
-
-📲 احجز الآن:
-https://wa.me/${PHONE}
-
-#RelaxFix #صيانة #الإمارات #خدمات_منزلية`;
-}
-
-function videoScript(service) {
-  const s = service || "خدمة صيانة";
-  return `🎬 سكريبت فيديو قصير:
-
-المشهد 1:
-عميل يعاني من مشكلة في ${s}
-
-المشهد 2:
-ظهور Relax Fix كحل سريع وذكي
-
-المشهد 3:
-قبل وبعد الخدمة
-
-المشهد 4:
-رسالة قوية:
-"لا تضيع وقتك — احجز الآن"
-
-CTA:
-📲 تواصل واتساب الآن`;
-}
-
-function page() {
-  return `<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Relax Fix Global SaaS</title>
+// ===== UI =====
+function pageHome(){
+return `<!DOCTYPE html><html lang="ar" dir="rtl"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Relax Fix</title>
 <style>
-*{box-sizing:border-box}
-body{margin:0;font-family:Arial,Tahoma,sans-serif;background:#050814;color:#fff}
-body:before{content:"";position:fixed;inset:0;z-index:-1;background:
-radial-gradient(circle at 20% 20%,rgba(34,197,94,.22),transparent 35%),
-radial-gradient(circle at 80% 10%,rgba(14,165,233,.24),transparent 35%),
-linear-gradient(135deg,#050814,#020617)}
+*{box-sizing:border-box}body{margin:0;font-family:Arial;background:#050814;color:#fff}
 .wrap{width:min(1100px,92%);margin:auto}
-nav{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:18px 0}
-.logo{font-size:28px;font-weight:900}
-.btn,button{border:0;border-radius:18px;padding:14px 22px;margin:6px;font-size:16px;font-weight:900;cursor:pointer;color:#fff;background:linear-gradient(135deg,#22c55e,#0ea5e9)}
+nav{display:flex;justify-content:space-between;align-items:center;padding:16px 0;flex-wrap:wrap}
+.logo{font-size:26px;font-weight:900}
+.btn{padding:12px 18px;border:0;border-radius:14px;cursor:pointer;margin:6px;color:#fff;background:linear-gradient(135deg,#22c55e,#0ea5e9)}
 .gold{background:linear-gradient(135deg,#facc15,#fb923c);color:#111}
-.red{background:#ef4444}
-.hero{text-align:center;padding:55px 0}
-h1{font-size:clamp(42px,8vw,82px);margin:0 0 18px;background:linear-gradient(90deg,#22c55e,#0ea5e9,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-p{color:#cbd5e1;line-height:1.8;font-size:18px}
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
-.card{background:rgba(15,23,42,.86);border:1px solid rgba(255,255,255,.14);border-radius:26px;padding:24px;margin:18px 0;box-shadow:0 20px 60px rgba(0,0,0,.35)}
-input,textarea,select{width:100%;padding:15px;margin:8px 0;border:0;border-radius:14px;font-size:16px}
-textarea{min-height:100px}
-.result{white-space:pre-wrap;text-align:right;background:#020617;border-radius:18px;padding:18px;margin-top:15px;color:#e2e8f0}
-table{width:100%;border-collapse:collapse;margin-top:15px}
-td,th{border:1px solid #263244;padding:10px;text-align:right}
-.small{font-size:14px;color:#94a3b8}
-@media(max-width:850px){.grid{grid-template-columns:1fr}nav,.hero{text-align:center}.logo{width:100%}}
-</style>
-</head>
+.card{background:#0f172a;border:1px solid #263244;border-radius:20px;padding:18px;margin:16px 0}
+input,select,textarea{width:100%;padding:12px;margin:6px 0;border-radius:12px;border:0}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:850px){.grid{grid-template-columns:1fr}}
+.small{font-size:13px;color:#94a3b8}
+.result{white-space:pre-wrap;background:#020617;border-radius:14px;padding:12px;margin-top:10px}
+</style></head>
 <body>
 <div class="wrap">
 <nav>
-  <div class="logo">⚡ Relax Fix Global SaaS</div>
+  <div class="logo">⚡ Relax Fix</div>
   <div>
     <a class="btn" href="/">Home</a>
     <a class="btn gold" href="/admin">Dashboard</a>
-    <a class="btn" href="https://wa.me/${PHONE}" target="_blank">WhatsApp</a>
+    <a class="btn" target="_blank" href="https://wa.me/${PHONE}">WhatsApp</a>
   </div>
 </nav>
 
-<section class="hero">
-  <h1>منصة صيانة ودعاية ذكية</h1>
-  <p>طلبات العملاء + توليد إعلانات + سكريبت فيديو + لوحة تحكم — نسخة ثابتة جاهزة للتجربة.</p>
-  <a class="btn gold" href="#request">ابدأ تجربة مجانية</a>
-</section>
+<div class="grid">
+  <div class="card"><h3>🎁 Coins</h3><p>سجل وخد 20 Coins + شارك وخد 10</p></div>
+  <div class="card"><h3>📊 Calculator</h3><p>احسب السعر فورًا</p></div>
+  <div class="card"><h3>📡 Radar</h3><p>كل الطلبات تظهر في الأدمن</p></div>
+</div>
 
-<section class="grid">
-  <div class="card"><h2>📊 Dashboard</h2><p>إدارة الطلبات والعملاء بشكل واضح.</p></div>
-  <div class="card"><h2>🎨 AI Ads</h2><p>توليد إعلان تسويقي جاهز للنشر.</p></div>
-  <div class="card"><h2>🎬 Video Generator</h2><p>سكريبت فيديو دعائي سريع.</p></div>
-</section>
+<div class="card">
+<h2>💰 حاسبة السعر</h2>
+<select id="svc">
+  <option>دهان</option><option>صيانة تكييف</option><option>جبسون بورد</option>
+  <option>سيراميك</option><option>كهرباء</option><option>سباكة</option>
+  <option>تنظيف خزانات</option><option>مكافحة حشرات</option>
+</select>
+<input id="area" placeholder="المساحة (متر)">
+<button class="btn" onclick="calc()">احسب</button>
+<p id="price"></p>
+</div>
 
-<section class="card">
-  <h2>🎨 جرّب إعلان AI</h2>
-  <input id="adService" placeholder="مثال: صيانة تكييف / دهان / تنظيف خزانات">
-  <button onclick="makeAd()">Generate Ad</button>
-  <div id="adResult" class="result"></div>
-</section>
+<div class="card">
+<h2>🎨 AI Ads</h2>
+<input id="adS" placeholder="نوع الخدمة">
+<button class="btn" onclick="makeAd()">Generate</button>
+<div id="adR" class="result"></div>
+</div>
 
-<section class="card">
-  <h2>🎬 جرّب سكريبت فيديو</h2>
-  <input id="videoService" placeholder="مثال: شركة صيانة في أبوظبي">
-  <button onclick="makeVideo()">Generate Video Script</button>
-  <div id="videoResult" class="result"></div>
-</section>
+<div class="card">
+<h2>🎬 Video</h2>
+<input id="vdS" placeholder="نوع الخدمة">
+<button class="btn" onclick="makeV()">Generate</button>
+<div id="vdR" class="result"></div>
+</div>
 
-<section class="card" id="request">
-  <h2>📩 إرسال طلب خدمة</h2>
-  <input id="name" placeholder="الاسم">
-  <input id="phone" placeholder="رقم الهاتف">
-  <select id="service">
-    <option>صيانة تكييف</option>
-    <option>دهان</option>
-    <option>كهرباء</option>
-    <option>سباكة</option>
-    <option>سيراميك</option>
-    <option>جبسون بورد</option>
-    <option>عزل أسطح</option>
-    <option>تنظيف خزانات</option>
-    <option>مكافحة حشرات</option>
-  </select>
-  <textarea id="notes" placeholder="اكتب التفاصيل أو المنطقة"></textarea>
-  <button onclick="sendRequest()">إرسال الطلب</button>
-  <p id="msg"></p>
-</section>
+<div class="card">
+<h2>📩 طلب خدمة</h2>
+<input id="name" placeholder="الاسم">
+<input id="phone" placeholder="الهاتف">
+<input id="city" placeholder="المدينة">
+<select id="service">
+  <option>دهان</option><option>صيانة تكييف</option><option>جبسون بورد</option>
+  <option>سيراميك</option><option>كهرباء</option><option>سباكة</option>
+  <option>تنظيف خزانات</option><option>مكافحة حشرات</option>
+</select>
+<input id="area2" placeholder="المساحة (اختياري)">
+<textarea id="notes" placeholder="تفاصيل"></textarea>
+<button class="btn gold" onclick="send()">إرسال + واتساب</button>
+<p id="msg"></p>
+</div>
 
-<p class="small">Status: يعمل حتى لو قاعدة البيانات غير متصلة. عند ربط Supabase سيتم التخزين تلقائيًا.</p>
+<p class="small">نسخة مستقرة — Coins/Referral مبدئيين، Dashboard متقدم للأدمن.</p>
 </div>
 
 <script>
+function calc(){
+  const s=document.getElementById("svc").value;
+  const a=document.getElementById("area").value;
+  fetch("/api/calc",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({service:s,area:a})})
+  .then(r=>r.json()).then(d=>document.getElementById("price").innerText="السعر التقريبي: "+d.price+" درهم");
+}
 function makeAd(){
-  const s=document.getElementById("adService").value;
+  const s=document.getElementById("adS").value;
   fetch("/api/ad",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({service:s})})
-  .then(r=>r.json()).then(d=>document.getElementById("adResult").innerText=d.text);
+  .then(r=>r.json()).then(d=>document.getElementById("adR").innerText=d.text);
 }
-function makeVideo(){
-  const s=document.getElementById("videoService").value;
+function makeV(){
+  const s=document.getElementById("vdS").value;
   fetch("/api/video",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({service:s})})
-  .then(r=>r.json()).then(d=>document.getElementById("videoResult").innerText=d.text);
+  .then(r=>r.json()).then(d=>document.getElementById("vdR").innerText=d.text);
 }
-function sendRequest(){
+function send(){
   const data={
     name:document.getElementById("name").value,
     phone:document.getElementById("phone").value,
+    city:document.getElementById("city").value,
     service:document.getElementById("service").value,
+    area:document.getElementById("area2").value,
     notes:document.getElementById("notes").value
   };
   fetch("/api/request",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)})
   .then(r=>r.json()).then(d=>{
     document.getElementById("msg").innerText=d.message;
-    if(d.whatsapp) window.open(d.whatsapp,"_blank");
+    if(d.wa) window.open(d.wa,"_blank");
   });
 }
 </script>
-</body>
-</html>`;
+</body></html>`;
 }
 
-async function adminPage() {
-  const requests = await getRequests();
-  const rows = requests.map(r => `
+// ===== ADMIN UI =====
+async function pageAdmin(){
+  const rows = DB.requests.map(r=>`
 <tr>
-<td>${r.name || ""}</td>
-<td>${r.phone || ""}</td>
-<td>${r.service || ""}</td>
-<td>${r.notes || ""}</td>
-<td><a class="btn" href="https://wa.me/${String(r.phone||"").replace(/[^0-9]/g,"")}" target="_blank">WhatsApp</a></td>
+<td>${r.name}</td><td>${r.phone}</td><td>${r.city||""}</td>
+<td>${r.service}</td><td>${r.price}</td>
+<td>${r.status}</td>
+<td>
+  <a class="btn" href="https://wa.me/${String(r.phone).replace(/[^0-9]/g,"")}" target="_blank">WA</a>
+  <button class="btn" onclick="setS('${r.id}','done')">Done</button>
+</td>
 </tr>`).join("");
 
-  return `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin</title>
-<style>body{font-family:Arial;background:#050814;color:white;padding:20px}.card{background:#0f172a;padding:20px;border-radius:20px}table{width:100%;border-collapse:collapse}td,th{border:1px solid #263244;padding:10px}a{color:white}.btn{background:#22c55e;padding:8px 12px;border-radius:10px;text-decoration:none}</style></head>
-<body><h1>📊 Relax Fix Admin</h1><div class="card"><table><tr><th>الاسم</th><th>الهاتف</th><th>الخدمة</th><th>التفاصيل</th><th>تواصل</th></tr>${rows || "<tr><td colspan='5'>لا توجد طلبات بعد</td></tr>"}</table></div><p><a class="btn" href="/">رجوع</a></p></body></html>`;
+  return `<!DOCTYPE html><html lang="ar" dir="rtl"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin</title>
+<style>
+body{background:#050814;color:#fff;font-family:Arial;padding:16px}
+.card{background:#0f172a;border:1px solid #263244;border-radius:16px;padding:14px}
+table{width:100%;border-collapse:collapse}td,th{border:1px solid #263244;padding:8px}
+.btn{background:#22c55e;border:0;border-radius:10px;padding:6px 10px;color:#fff;cursor:pointer}
+.top{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+</style></head>
+<body>
+<h1>📊 Dashboard</h1>
+<div class="top">
+  <input id="pass" placeholder="Admin password">
+  <button class="btn" onclick="load()">Open</button>
+</div>
+<div class="card">
+<table>
+<tr><th>الاسم</th><th>الهاتف</th><th>المدينة</th><th>الخدمة</th><th>السعر</th><th>الحالة</th><th>أكشن</th></tr>
+<tbody id="rows">${rows || "<tr><td colspan='7'>لا يوجد بيانات</td></tr>"}</tbody>
+</table>
+</div>
+
+<script>
+async function load(){
+  const p=document.getElementById("pass").value;
+  const r=await fetch("/api/admin?pass="+encodeURIComponent(p));
+  const d=await r.json();
+  if(d.error){ alert(d.error); return; }
+  const rows = d.map(x=>\`
+  <tr>
+    <td>\${x.name}</td><td>\${x.phone}</td><td>\${x.city||""}</td>
+    <td>\${x.service}</td><td>\${x.price}</td>
+    <td>\${x.status}</td>
+    <td>
+      <a class="btn" href="https://wa.me/\${String(x.phone).replace(/[^0-9]/g,"")}" target="_blank">WA</a>
+      <button class="btn" onclick="setS('\${x.id}','done')">Done</button>
+    </td>
+  </tr>\`).join("");
+  document.getElementById("rows").innerHTML = rows;
+}
+async function setS(id,status){
+  const p=document.getElementById("pass").value;
+  await fetch("/api/status?pass="+encodeURIComponent(p),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,status})});
+  load();
+}
+</script>
+<p><a class="btn" href="/">رجوع</a></p>
+</body></html>`;
 }
 
-const server = http.createServer(async (req, res) => {
-  try {
-    const url = new URL(req.url, "http://localhost");
+// ===== server =====
+const server = http.createServer(async (req,res)=>{
+  try{
+    const url = new URL(req.url, "http://x");
 
-    if (req.method === "GET" && url.pathname === "/") return html(res, page());
-    if (req.method === "GET" && url.pathname === "/admin") return html(res, await adminPage());
+    if(req.method==="GET" && url.pathname==="/") return html(res, pageHome());
+    if(req.method==="GET" && url.pathname==="/admin") return html(res, await pageAdmin());
 
-    if (req.method === "POST" && url.pathname === "/api/ad") {
-      const data = JSON.parse(await readBody(req) || "{}");
-      return json(res, { text: aiAd(data.service) });
+    if(req.method==="POST" && url.pathname==="/api/calc"){
+      const d = parseJSON(await readBody(req));
+      return json(res, { price: calcPrice(d.service, d.area) });
     }
 
-    if (req.method === "POST" && url.pathname === "/api/video") {
-      const data = JSON.parse(await readBody(req) || "{}");
-      return json(res, { text: videoScript(data.service) });
+    if(req.method==="POST" && url.pathname==="/api/ad"){
+      const d = parseJSON(await readBody(req));
+      return json(res, { text: aiAd(d.service) });
     }
 
-    if (req.method === "POST" && url.pathname === "/api/request") {
-      const data = JSON.parse(await readBody(req) || "{}");
-      if (!data.name || !data.phone) return json(res, { message: "❌ اكتب الاسم ورقم الهاتف" });
-
-      await saveRequest(data);
-
-      const waText = encodeURIComponent(
-        `طلب جديد من Relax Fix\nالاسم: ${data.name}\nالهاتف: ${data.phone}\nالخدمة: ${data.service}\nالتفاصيل: ${data.notes || ""}`
-      );
-
-      return json(res, {
-        message: "✅ تم إرسال الطلب بنجاح",
-        whatsapp: `https://wa.me/${PHONE}?text=${waText}`
-      });
+    if(req.method==="POST" && url.pathname==="/api/video"){
+      const d = parseJSON(await readBody(req));
+      return json(res, { text: aiVideo(d.service) });
     }
 
-    html(res, page());
-  } catch (e) {
-    html(res, `<h1>Relax Fix</h1><p>حدث خطأ بسيط، لكن السيرفر يعمل.</p><pre>${e.message}</pre><a href="/">رجوع</a>`);
+    if(req.method==="POST" && url.pathname==="/api/request"){
+      const d = parseJSON(await readBody(req));
+      if(!d.name || !d.phone) return json(res, { message:"❌ الاسم والهاتف مطلوبين" });
+
+      const price = calcPrice(d.service, d.area);
+      const item = { id:uid(), name:d.name, phone:d.phone, city:d.city||"", service:d.service||"", area:d.area||"", notes:d.notes||"", price, status:"new", created_at:now() };
+      DB.requests.unshift(item);
+
+      const wa = `https://wa.me/${PHONE}?text=${encodeURIComponent(
+        `طلب جديد\n${item.name}\n${item.phone}\n${item.service}\nالسعر: ${item.price}\n${item.city}\n${item.notes}`
+      )}`;
+
+      return json(res, { message:"✅ تم الإرسال", wa });
+    }
+
+    if(req.method==="GET" && url.pathname==="/api/admin"){
+      if(url.searchParams.get("pass") !== ADMIN_PASS) return json(res,{error:"Unauthorized"});
+      return json(res, DB.requests);
+    }
+
+    if(req.method==="POST" && url.pathname==="/api/status"){
+      const pass = url.searchParams.get("pass");
+      if(pass !== ADMIN_PASS) return json(res,{error:"Unauthorized"});
+      const d = parseJSON(await readBody(req));
+      const it = DB.requests.find(x=>x.id===d.id);
+      if(it) it.status = d.status || "new";
+      return json(res,{ok:true});
+    }
+
+    html(res, pageHome());
+  }catch(e){
+    html(res, `<h1>Relax Fix</h1><p>خطأ بسيط</p><pre>${e.message}</pre><a href="/">رجوع</a>`);
   }
 });
 
-server.listen(PORT, "0.0.0.0", () => {
-  console.log("Relax Fix Global SaaS running on port " + PORT);
-});
+server.listen(PORT, "0.0.0.0", ()=>console.log("Running on "+PORT));
