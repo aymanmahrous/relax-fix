@@ -1,206 +1,158 @@
-const http = require("http");
+<!-- ===== RADAR + LOGIC ===== -->
 
-const PORT = process.env.PORT || 10000;
-const PHONE = process.env.PHONE || "971588259848";
-const ADMIN_PASS = process.env.ADMIN_PASS || "123456";
+<button onclick="openRadar()" style="
+position:fixed;
+left:20px;
+bottom:20px;
+z-index:9999;
+background:linear-gradient(135deg,#22c55e,#0ea5e9);
+color:white;
+padding:14px 18px;
+border-radius:50px;
+border:none;
+font-weight:bold;">
+📡 Radar
+</button>
 
-// ===== STORAGE =====
-let requests = [];
-let chats = [];
-
-// ===== HELPERS =====
-function html(res, body){
-  res.writeHead(200, {"Content-Type":"text/html; charset=utf-8"});
-  res.end(body);
-}
-function json(res, data){
-  res.writeHead(200, {"Content-Type":"application/json"});
-  res.end(JSON.stringify(data));
-}
-function readBody(req){
-  return new Promise(r=>{
-    let b="";
-    req.on("data",c=>b+=c);
-    req.on("end",()=>r(b));
-  });
-}
-
-// ===== AI =====
-function aiReply(q){
-  q = (q||"").toLowerCase();
-
-  if(q.includes("مكيف")) return "افحص الفلتر والغاز غالباً المشكلة هنا.";
-  if(q.includes("دهان")) return "حدد المساحة ونوع الدهان.";
-  if(q.includes("سيراميك")) return "كم المساحة؟";
-
-  return "اكتب تفاصيل أكثر.";
-}
-
-// ===== PRICE =====
-function calc(service,area){
-  const map={
-    "دهان":12,
-    "تكييف":150,
-    "سيراميك":90,
-    "كهرباء":120
-  };
-  if(area) return area*(map[service]||10);
-  return map[service]||100;
-}
-
-// ===== UI =====
-function page(){
-return `
-<html dir="rtl">
-<head>
-<meta charset="UTF-8">
-<title>Relax Fix AI</title>
-
-<style>
-body{
-margin:0;
-font-family:Arial;
+<div id="radar" style="
+display:none;
+position:fixed;
+inset:0;
 background:#020617;
+z-index:10000;
 color:white;
-}
-
-.hero{
-text-align:center;
-padding:80px;
-background:linear-gradient(135deg,#00ffc3,#0099ff);
-}
-
-button{
-padding:12px;
-border-radius:10px;
-border:none;
-background:#22c55e;
-color:white;
-margin:5px;
-}
-
-.card{
-background:#111827;
 padding:20px;
-margin:20px;
-border-radius:15px;
-}
+overflow:auto">
 
-input,textarea{
-width:100%;
+<button onclick="closeRadar()" style="
+background:red;
 padding:10px;
-margin:5px 0;
-border-radius:10px;
 border:none;
-}
-</style>
+border-radius:10px;">✖</button>
 
-</head>
+<h1>📡 العملاء</h1>
 
-<body>
+<input id="search" placeholder="بحث..." 
+style="width:100%;padding:12px;border-radius:10px;border:none;margin:10px 0">
 
-<div class="hero">
-<h1>🚀 Relax Fix AI</h1>
-<p>منصة ذكية للصيانة</p>
+<div id="list"></div>
+
 </div>
-
-<div class="card">
-<h2>💰 حاسبة</h2>
-<input id="s">
-<input id="a">
-<button onclick="calc()">احسب</button>
-<p id="p"></p>
-</div>
-
-<div class="card">
-<h2>🤖 AI</h2>
-<textarea id="q"></textarea>
-<button onclick="ask()">اسأل</button>
-<p id="r"></p>
-</div>
-
-<div class="card">
-<h2>📩 طلب</h2>
-<input id="name">
-<input id="phone">
-<input id="service">
-<button onclick="send()">ارسال</button>
-</div>
-
-<a href="/admin">Admin</a>
 
 <script>
 
-function calc(){
-fetch('/calc',{method:'POST',headers:{'Content-Type':'application/json'},
-body:JSON.stringify({service:s.value,area:a.value})})
-.then(r=>r.json()).then(d=>p.innerText=d.price);
+// ===== STATE =====
+let DATA = [];
+
+// ===== OPEN =====
+function openRadar(){
+ document.getElementById("radar").style.display="block";
+ load();
+}
+function closeRadar(){
+ document.getElementById("radar").style.display="none";
 }
 
-function ask(){
-fetch('/ai',{method:'POST',headers:{'Content-Type':'application/json'},
-body:JSON.stringify({q:q.value})})
-.then(r=>r.json()).then(d=>r.innerText=d.reply);
+// ===== LOAD =====
+async function load(){
+ try{
+   const r = await fetch("/admin");
+   const html = await r.text();
+
+   // استخراج البيانات من الصفحة (بسيط)
+   DATA = html.split("<div>").slice(1).map(x=>{
+     return {text:x.replace("</div>","")};
+   });
+
+   render();
+
+ }catch(e){
+   list.innerHTML="خطأ";
+ }
 }
 
-function send(){
-fetch('/request',{method:'POST',headers:{'Content-Type':'application/json'},
-body:JSON.stringify({name:name.value,phone:phone.value,service:service.value})})
-.then(()=>alert("تم"));
+// ===== RENDER =====
+function render(){
+ const q = search.value || "";
+
+ list.innerHTML = DATA.filter(x=>x.text.includes(q)).map((x,i)=>`
+  <div style="
+  background:#111827;
+  padding:15px;
+  margin:10px 0;
+  border-radius:15px">
+
+  <p>${x.text}</p>
+
+  <a target="_blank" href="https://wa.me/971XXXXXXXXX"
+  style="background:#22c55e;padding:8px 10px;border-radius:8px;color:white;text-decoration:none">
+  WhatsApp
+  </a>
+
+  </div>
+ `).join("");
 }
 
-</script>
+// ===== SEARCH =====
+search.oninput = render;
 
-</body>
-</html>
-`;
-}
+// ===== CALC BUTTON =====
+document.querySelectorAll("button").forEach(b=>{
+ if(b.innerText.includes("احسب")){
+   b.onclick = async ()=>{
+     const s = document.querySelector("#service")?.value || "";
+     const a = document.querySelector("#area")?.value || "";
 
-// ===== ADMIN =====
-function admin(){
-return `
-<h1>Admin</h1>
-${requests.map(r=>`
-<div>
-${r.name} - ${r.service}
-</div>`).join("")}
-`;
-}
+     const r = await fetch("/calc",{
+       method:"POST",
+       headers:{"Content-Type":"application/json"},
+       body:JSON.stringify({service:s,area:a})
+     });
 
-// ===== SERVER =====
-const server = http.createServer(async (req,res)=>{
-
-const url = new URL(req.url,"http://x");
-
-// home
-if(req.method==="GET" && url.pathname==="/")
-return html(res,page());
-
-// admin
-if(req.method==="GET" && url.pathname==="/admin")
-return html(res,admin());
-
-// calc
-if(req.method==="POST" && url.pathname==="/calc"){
-const b=JSON.parse(await readBody(req));
-return json(res,{price:calc(b.service,b.area)});
-}
-
-// ai
-if(req.method==="POST" && url.pathname==="/ai"){
-const b=JSON.parse(await readBody(req));
-return json(res,{reply:aiReply(b.q)});
-}
-
-// request
-if(req.method==="POST" && url.pathname==="/request"){
-const b=JSON.parse(await readBody(req));
-requests.push(b);
-return json(res,{ok:true});
-}
-
-html(res,"OK");
-
+     const d = await r.json();
+     alert("السعر: "+d.price);
+   };
+ }
 });
 
-server.listen(PORT,()=>console.log("Running"));
+// ===== AI BUTTON =====
+document.querySelectorAll("button").forEach(b=>{
+ if(b.innerText.includes("AI") || b.innerText.includes("اسأل")){
+   b.onclick = async ()=>{
+     const q = document.querySelector("#question")?.value || "";
+
+     const r = await fetch("/ai",{
+       method:"POST",
+       headers:{"Content-Type":"application/json"},
+       body:JSON.stringify({q})
+     });
+
+     const d = await r.json();
+     alert(d.reply);
+   };
+ }
+});
+
+// ===== REQUEST BUTTON =====
+document.querySelectorAll("button").forEach(b=>{
+ if(b.innerText.includes("ارسال")){
+   b.onclick = async ()=>{
+     const name = document.querySelector("#name")?.value || "";
+     const phone = document.querySelector("#phone")?.value || "";
+     const service = document.querySelector("#service")?.value || "";
+
+     await fetch("/request",{
+       method:"POST",
+       headers:{"Content-Type":"application/json"},
+       body:JSON.stringify({name,phone,service})
+     });
+
+     const msg = "عميل: "+name+" "+phone+" "+service;
+     window.open("https://wa.me/971XXXXXXXXX?text="+encodeURIComponent(msg));
+
+     alert("تم");
+   };
+ }
+});
+
+</script>
