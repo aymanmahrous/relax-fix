@@ -192,4 +192,4 @@ html(res, home());
 
 server.listen(PORT,()=>{
  console.log("Running on "+PORT);
-});
+}); 
