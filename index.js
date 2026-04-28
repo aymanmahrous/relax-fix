@@ -1,136 +1,121 @@
-// RELAX FIX PRO+ SaaS (Stable + AI + Dashboard + Calculator)
+// RELAX FIX SaaS FULL (AI + Dashboard + REAL PAYMENT LINK)
 
 const http = require("http");
 
 const PORT = process.env.PORT || 10000;
 const PHONE = "971588259848";
-const ADMIN_PASS = "123456";
+
+// 👇 حط لينك Stripe هنا
+const STRIPE_LINK = "https://buy.stripe.com/PUT_YOUR_LINK_HERE";
 
 let requests = [];
-let messages = [];
 
 // ===== Helpers =====
 function html(res, body){
   res.writeHead(200, {"Content-Type":"text/html; charset=utf-8"});
   res.end(body);
 }
-
 function json(res, data){
   res.writeHead(200, {"Content-Type":"application/json"});
   res.end(JSON.stringify(data));
 }
-
 function readBody(req){
-  return new Promise(resolve=>{
-    let body="";
-    req.on("data", chunk=> body+=chunk.toString());
-    req.on("end", ()=> resolve(body));
+  return new Promise(r=>{
+    let b="";
+    req.on("data",c=>b+=c);
+    req.on("end",()=>r(b));
   });
 }
 
 // ===== Calculator =====
-function calcPrice(service){
-  const prices = {
-    "دهان": 10,
+function calc(service, area){
+  const map = {
+    "دهان": 12,
     "تكييف": 150,
     "جبسون": 90,
-    "سيراميك": 120,
-    "كهرباء": 80,
-    "سباكة": 70
+    "سيراميك": 120
   };
-  return prices[service] || 100;
+  if(area) return area * (map[service]||10);
+  return map[service] || 100;
 }
 
 // ===== AI =====
-function aiReply(q){
-  q = q.toLowerCase();
+function ai(q){
+  q=q.toLowerCase();
 
-  if(q.includes("مكيف")){
-    return "افحص الفلتر + الغاز + المروحة. غالباً يحتاج تنظيف أو شحن.";
-  }
-  if(q.includes("دهان")){
-    return "حدد المساحة ونوع الدهان. السعر يعتمد على التجهيز.";
-  }
-  return "اكتب تفاصيل أكثر وسنساعدك فوراً.";
+  if(q.includes("مكيف"))
+    return "افحص الفلتر + الغاز + المروحة. غالباً يحتاج تنظيف.";
+
+  if(q.includes("دهان"))
+    return "حدد المساحة ونوع الدهان.";
+
+  return "اكتب تفاصيل أكثر.";
 }
 
 // ===== UI =====
 function home(){
 return `
-<html dir="rtl">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Relax Fix</title>
-
-<style>
-body{background:#050814;color:#fff;font-family:Arial;text-align:center}
-.card{background:#0f172a;margin:15px;padding:15px;border-radius:15px}
-button{padding:10px;margin:5px;border:none;border-radius:10px;background:#22c55e;color:white}
-input,textarea{width:80%;padding:10px;margin:5px;border-radius:10px;border:none}
-</style>
-</head>
-
-<body>
-
 <h1>🚀 Relax Fix SaaS</h1>
 
-<div class="card">
-<h2>💰 حاسبة السعر</h2>
-<input id="service" placeholder="نوع الخدمة">
+<div>
+<h3>💰 Calculator</h3>
+<input id="s">
+<input id="a">
 <button onclick="calc()">احسب</button>
-<p id="price"></p>
+<p id="p"></p>
 </div>
 
-<div class="card">
-<h2>🤖 AI Assistant</h2>
+<div>
+<h3>🤖 AI</h3>
 <textarea id="q"></textarea>
 <button onclick="ask()">اسأل</button>
-<p id="a"></p>
+<p id="r"></p>
 </div>
 
-<div class="card">
-<h2>📩 طلب خدمة</h2>
-<input id="name" placeholder="الاسم">
-<input id="phone" placeholder="الهاتف">
-<input id="srv" placeholder="الخدمة">
-<button onclick="send()">إرسال</button>
+<div>
+<h3>📩 Request</h3>
+<input id="name">
+<input id="phone">
+<input id="srv">
+<button onclick="send()">Send</button>
 <p id="msg"></p>
 </div>
 
-<a href="/admin">لوحة التحكم</a>
+<div>
+<h3>💳 اشتراك</h3>
+<button onclick="pay()">ادفع الآن</button>
+</div>
+
+<a href="/admin">Dashboard</a>
 
 <script>
 function calc(){
  fetch('/calc',{method:'POST',headers:{'Content-Type':'application/json'},
- body:JSON.stringify({service:service.value})})
- .then(r=>r.json()).then(d=>price.innerText=d.price+' درهم');
+ body:JSON.stringify({service:s.value,area:a.value})})
+ .then(r=>r.json()).then(d=>p.innerText=d.price+" درهم");
 }
 
 function ask(){
  fetch('/ai',{method:'POST',headers:{'Content-Type':'application/json'},
  body:JSON.stringify({q:q.value})})
- .then(r=>r.json()).then(d=>a.innerText=d.reply);
+ .then(r=>r.json()).then(d=>r.innerText=d.reply);
 }
 
 function send(){
  fetch('/request',{method:'POST',headers:{'Content-Type':'application/json'},
- body:JSON.stringify({
-  name:name.value,
-  phone:phone.value,
-  service:srv.value
- })})
+ body:JSON.stringify({name:name.value,phone:phone.value,service:srv.value})})
  .then(r=>r.json()).then(d=>msg.innerText=d.msg);
 }
-</script>
 
-</body>
-</html>
+function pay(){
+ window.open("${STRIPE_LINK}");
+}
+</script>
 `;
 }
 
-// ===== Admin =====
-function adminPage(){
+// ===== Dashboard =====
+function admin(){
 return `
 <h1>Dashboard</h1>
 
@@ -141,8 +126,7 @@ ${requests.map(r=>`
 <td>${r.name}</td>
 <td>${r.phone}</td>
 <td>${r.service}</td>
-</tr>
-`).join("")}
+</tr>`).join("")}
 </table>
 
 <a href="/">رجوع</a>
@@ -154,42 +138,34 @@ const server = http.createServer(async (req,res)=>{
 
 const url = new URL(req.url,"http://x");
 
-// Pages
-if(req.method==="GET" && url.pathname==="/"){
-  return html(res, home());
-}
+if(req.method==="GET" && url.pathname==="/")
+  return html(res,home());
 
-if(req.method==="GET" && url.pathname==="/admin"){
-  return html(res, adminPage());
-}
+if(req.method==="GET" && url.pathname==="/admin")
+  return html(res,admin());
 
-// API
 if(req.method==="POST" && url.pathname==="/calc"){
-  const body = JSON.parse(await readBody(req));
-  return json(res,{price:calcPrice(body.service)});
+ const b = JSON.parse(await readBody(req));
+ return json(res,{price:calc(b.service,b.area)});
 }
 
 if(req.method==="POST" && url.pathname==="/ai"){
-  const body = JSON.parse(await readBody(req));
-  const reply = aiReply(body.q);
-  messages.push({q:body.q,reply});
-  return json(res,{reply});
+ const b = JSON.parse(await readBody(req));
+ return json(res,{reply:ai(b.q)});
 }
 
 if(req.method==="POST" && url.pathname==="/request"){
-  const body = JSON.parse(await readBody(req));
-  requests.push(body);
+ const b = JSON.parse(await readBody(req));
+ requests.push(b);
 
-  return json(res,{
-    msg:"تم الإرسال",
-    wa:`https://wa.me/${PHONE}?text=طلب ${body.service}`
-  });
+ return json(res,{
+  msg:"تم الإرسال",
+  wa:`https://wa.me/${PHONE}?text=طلب ${b.service}`
+ });
 }
 
-html(res, home());
+html(res,home());
 
 });
 
-server.listen(PORT,()=>{
- console.log("Running on "+PORT);
-});
+server.listen(PORT,()=>console.log("Running "+PORT));
