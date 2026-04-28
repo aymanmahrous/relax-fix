@@ -204,4 +204,30 @@ html(res,"OK");
 
 });
 
-server.listen(PORT,()=>console.log("Running"));
+// ===== PAY BUTTON ROUTE =====
+if(req.method==="GET" && url.pathname==="/pay-page"){
+  res.writeHead(200,{"Content-Type":"text/html"});
+  return res.end(`
+    <html>
+    <body style="background:#0b1220;color:white;text-align:center;padding-top:100px;font-family:sans-serif;">
+      <h1>اشتراك Relax Fix PRO</h1>
+      <button onclick="buy()" style="padding:15px 30px;font-size:20px;border:none;border-radius:10px;background:#00c853;color:white;">
+        اشترك الآن 💰
+      </button>
+
+      <script>
+      async function buy(){
+        const r = await fetch("/pay",{
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({email:"test@email.com"})
+        });
+        const d = await r.json();
+        window.location = d.url;
+      }
+      </script>
+    </body>
+    </html>
+  `);
+}
+server.listen(PORT,()=>console.log("r
